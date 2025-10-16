@@ -75,8 +75,17 @@ class Mission:
 
     @classmethod
     def from_csv(cls, file_name: str):
-        # You are required to implement this method
-        pass
+        import pandas as pd
+        df = pd.read_csv(file_name)
+        required = {"reference", "cave_height", "cave_depth"}
+        if not required.issubset(df.columns):
+            raise ValueError(f"CSV must contain columns {required}, found {set(df.columns)}")
+
+        return cls(
+            reference=df["reference"].to_numpy(dtype=float),
+            cave_height=df["cave_height"].to_numpy(dtype=float),
+            cave_depth=df["cave_depth"].to_numpy(dtype=float),
+        )
 
 
 class ClosedLoop:
@@ -105,3 +114,4 @@ class ClosedLoop:
     def simulate_with_random_disturbances(self, mission: Mission, variance: float = 0.5) -> Trajectory:
         disturbances = np.random.normal(0, variance, len(mission.reference))
         return self.simulate(mission, disturbances)
+
