@@ -93,24 +93,36 @@ class ClosedLoop:
         self.plant = plant
         self.controller = controller
 
-    def simulate(self,  mission: Mission, disturbances: np.ndarray) -> Trajectory:
-
+    def simulate(self, mission: Mission, disturbances: np.ndarray) -> Trajectory:
         T = len(mission.reference)
         if len(disturbances) < T:
             raise ValueError("Disturbances must be at least as long as mission duration")
-        
+
         positions = np.zeros((T, 2))
         actions = np.zeros(T)
+
+        # Reset plant + controller state
         self.plant.reset_state()
+        if hasattr(self.controller, "reset"):
+            self.controller.reset()
 
         for t in range(T):
+            # log position before stepping
             positions[t] = self.plant.get_position()
-            observation_t = self.plant.get_depth()
-            # Call your controller here
-            self.plant.transition(actions[t], disturbances[t])
+
+            # measurement + reference
+            y_t = self.plant.get_depth()
+            r_t = mission.reference[t]
+
+            # compute control action with your controller (expected signature: controller(r, y))
+            u_t = self.controller(r_t, y_t)
+            actions[t] = u_t
+
+            # step plant with control + disturbance
+            self.plant.transition(u_t, float(disturbances[t]))
 
         return Trajectory(positions)
-        
+
     def simulate_with_random_disturbances(self, mission: Mission, variance: float = 0.5) -> Trajectory:
         disturbances = np.random.normal(0, variance, len(mission.reference))
         return self.simulate(mission, disturbances)
