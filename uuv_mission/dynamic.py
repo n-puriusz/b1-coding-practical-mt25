@@ -75,17 +75,37 @@ class Mission:
 
     @classmethod
     def from_csv(cls, file_name: str):
-        import pandas as pd
-        df = pd.read_csv(file_name)
+        """Load mission data from a CSV file.
+
+        Accepts a filesystem path (str or os.PathLike) or anything accepted by
+        pandas.read_csv. Returns a Mission instance with numpy arrays.
+        """
+        # Support pathlib.Path and other os.PathLike objects
+        import os
+        file_name = os.fspath(file_name)
+
+        try:
+            import pandas as pd
+        except Exception as exc:  # pragma: no cover - environment dependent
+            raise ImportError("pandas is required to load mission CSV files") from exc
+
+        try:
+            df = pd.read_csv(file_name)
+        except FileNotFoundError as exc:
+            raise FileNotFoundError(f"Mission CSV not found: {file_name}") from exc
+
         required = {"reference", "cave_height", "cave_depth"}
         if not required.issubset(df.columns):
             raise ValueError(f"CSV must contain columns {required}, found {set(df.columns)}")
 
-        return cls(
-            reference=df["reference"].to_numpy(dtype=float),
-            cave_height=df["cave_height"].to_numpy(dtype=float),
-            cave_depth=df["cave_depth"].to_numpy(dtype=float),
-        )
+        reference = df["reference"].to_numpy(dtype=float)
+        cave_height = df["cave_height"].to_numpy(dtype=float)
+        cave_depth = df["cave_depth"].to_numpy(dtype=float)
+
+        if not (len(reference) == len(cave_height) == len(cave_depth)):
+            raise ValueError("Columns 'reference', 'cave_height' and 'cave_depth' must have the same length")
+
+        return cls(reference=reference, cave_height=cave_height, cave_depth=cave_depth)
 
 
 class ClosedLoop:
