@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 from .terrain import generate_reference_and_limits
+import os
+from typing import Union
 
 class Submarine:
     def __init__(self):
@@ -74,7 +76,7 @@ class Mission:
         return cls(reference, cave_height, cave_depth)
 
     @classmethod
-    def from_csv(cls, file_name: str):
+    def from_csv(cls, file_name: Union[str, os.PathLike]):
         """Load mission data from a CSV file.
 
         Accepts a filesystem path (str or os.PathLike) or anything accepted by
